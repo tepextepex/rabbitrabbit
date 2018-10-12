@@ -1,6 +1,6 @@
 from rabbit_niersc import Rabbit
 
-r = Rabbit(profession="unit")
+r = Rabbit(host="localhost", profession="unit", name="test", data_type="test_data")
 
 
 def test_function(**kwargs):
