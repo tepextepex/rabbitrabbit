@@ -16,11 +16,14 @@ class Rabbit(object):
         self._setup_outgoing()
 
         # subscribe the incoming Q for messages with a proper data_type tag only:
-        self.channel.queue_bind(exchange=self.incomingExName,
-                                queue=self.incomingQName,
-                                routing_key=self.data_type)
+        if self.incomingExName is not None and self.incomingQName is not None:  # false for profession=master which doesn't listen to any Qs
+            self.channel.queue_bind(exchange=self.incomingExName,
+                                    queue=self.incomingQName,
+                                    routing_key=self.data_type)
 
     def _setup_defaults(self, host, profession, name, data_type):
+
+        self.possible_profs = ("master", "agent", "unit", "logger")  # whitelist for "profession" argument
 
         if host is None:
             host = "localhost"
@@ -28,7 +31,12 @@ class Rabbit(object):
 
         if profession is None:
             profession = "agent"
-        self.profession = profession
+        else:
+            try:
+                self.possible_profs.index(profession)  # checks if the "profession" value exists in a whitelist
+            except ValueError:
+                profession = "agent"  # raised if "profession" value is unknown and sets the default
+        self.prof = profession
 
         if name is None:
             name = "test"
@@ -39,24 +47,52 @@ class Rabbit(object):
         self.data_type = data_type
 
     def _setup_incoming(self):
+        # sorry for camelCase below :)
+        if self.prof == "agent":
+            self.incomingExName = "to_agent_routing"
+            self.incomingQName = "_".join(["to", "agent", self.name])
+        elif self.prof == "unit":
+            self.incomingExName = "from_agent_routing"
+            self.incomingQName = "_".join(["from", "agent", self.name])
+        elif self.prof == "logger":
+            self.incomingExName = "to_logger_routing"
+            self.incomingQName = "to_logger"  # only one "to_logger" Q exists, no need in unique names
+        elif self.prof == "master":
+            # master doesn't listen to any incoming exchanges and queues
+            self.incomingExName = None
+            self.incomingQName = None
 
-        self.incomingExName = "to_agent_routing" if self.profession == "agent" else "from_agent_routing"
-        self.channel.exchange_declare(exchange=self.incomingExName,
-                                      exchange_type="direct")
+        if self.incomingExName is not None:
+            self.channel.exchange_declare(exchange=self.incomingExName,
+                                          exchange_type="direct")
 
-        self.incomingQName = "_".join(["to", "agent", self.name])
-        self.channel.queue_declare(queue=self.incomingQName,
-                                   durable=True)
+        if self.incomingQName is not None:
+            self.channel.queue_declare(queue=self.incomingQName,
+                                       durable=True)
 
     def _setup_outgoing(self):
 
-        self.outgoingExName = "from_agent_routing" if self.profession == "agent" else "to_logger_routing"
-        self.channel.exchange_declare(exchange=self.outgoingExName,
-                                      exchange_type="direct")
+        if self.prof == "master":
+            self.outgoingExName = "to_agent_routing"
+            self.outgoingQName = None  # intentionally we won't create any Qs from the side of "master" - they'll be created by "agents"
+        elif self.prof == "agent":
+            self.outgoingExName = "from_agent_routing"
+            self.outgoingQName = "_".join(["from", "agent", self.name])
+        elif self.prof == "unit":
+            self.outgoingExName = "to_logger_routing"
+            self.outgoingQName = "to_logger"
+        elif self.prof == "logger":
+            # logger does not send any messages
+            self.outgoingExName = None
+            self.outgoingQName = None
 
-        self.outgoingQName = "_".join(["from", "agent", self.name]) if self.profession == "agent" else "to_logger"
-        self.channel.queue_declare(queue=self.outgoingQName,
-                                   durable=True)
+        if self.outgoingExName is not None:
+            self.channel.exchange_declare(exchange=self.outgoingExName,
+                                          exchange_type="direct")
+
+        if self.outgoingQName is not None:
+            self.channel.queue_declare(queue=self.outgoingQName,
+                                       durable=True)
 
     def duty(self, **kwargs):
         """
@@ -77,17 +113,28 @@ class Rabbit(object):
         # TODO: pass inside the following function every existing JSON item as kwarg:
         self.duty(a=msg_json["a"], b=msg_json["b"])
         # Then send a message further
+        self.say(body)
+
+    def say(self, msg):
+
         self.channel.basic_publish(exchange=self.outgoingExName,
                                    routing_key=self.data_type,
-                                   body=body)
+                                   body=msg)
+
+
+    def report_settings(self):
+        return "[%s rabbit] Listening to: %s (receiving messages from %s exchange by %s tag);\nsending to: %s exchange." \
+               % (self.name, self.incomingQName, self.incomingExName, self.data_type, self.outgoingExName)
 
     def run(self):
 
-        self.channel.basic_consume(self.on_request,
-                                   queue=self.incomingQName,
-                                   no_ack=False)
-        print("Awaiting requests from '%s' exchange with data_type tag '%s'" % (self.incomingExName, self.data_type))
-        self.channel.start_consuming()
+        if self.prof != "master":
+            self.channel.basic_consume(self.on_request,
+                                       queue=self.incomingQName,
+                                       no_ack=False)
+            print self.report_settings()
+            print("Awaiting requests")
+            self.channel.start_consuming()
 
     '''
     def stop(self):
