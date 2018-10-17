@@ -1,15 +1,27 @@
 import pika
 import json
-import uuid
 
 
 class Rabbit(object):
 
-    def __init__(self, host=None, profession=None, name=None, data_type=None):
+    def __init__(self, credentials=None, host=None, vhost_name=None, profession=None, name=None, data_type=None):
+        """
+        :param credentials: tuple (login, password)
+        :param host: hostname/ipv4
+        :param vhost_name: RabbitMQ virtual host name
+        :param profession: 'master', 'agent', 'unit' or 'logger'
+        :param name: will listen to a queue with this name. May be not unique
+        :param data_type: routing key
+        """
+        self._setup_defaults(credentials, host, vhost_name, profession, name, data_type)
 
-        self._setup_defaults(host, profession, name, data_type)
-
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
+        self.credentials = pika.PlainCredentials(self.login, self.password)
+        self.con_params = pika.ConnectionParameters(self.host,
+                                                    5672,
+                                                    self.vhost_name,
+                                                    self.credentials)
+        self.connection = pika.BlockingConnection(self.con_params)
+        # self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
 
         self._setup_incoming()
@@ -21,9 +33,18 @@ class Rabbit(object):
                                     queue=self.incomingQName,
                                     routing_key=self.data_type)
 
-    def _setup_defaults(self, host, profession, name, data_type):
+    def _setup_defaults(self, credentials, host, vhost_name, profession, name, data_type):
 
         self.possible_profs = ("master", "agent", "unit", "logger")  # whitelist for "profession" argument
+
+        if credentials is None:
+            credentials = ("guest", "guest")
+        self.login = credentials[0]
+        self.password = credentials[1]
+
+        if vhost_name is None:
+            vhost_name = "/"
+        self.vhost_name = vhost_name
 
         if host is None:
             host = "localhost"
@@ -86,10 +107,14 @@ class Rabbit(object):
             self.outgoingExName = None
             self.outgoingQName = None
 
+        self.outgoingQName = None  # we won't create any outgoing queues since we send messages into an exchange, not in the queue
+        # the outgoing exchange will sort our messages and deliver them into the queues created by Rabbits who listen to them
+
         if self.outgoingExName is not None:
             self.channel.exchange_declare(exchange=self.outgoingExName,
                                           exchange_type="direct")
 
+        # this piece of code below will never work since self.outgoingQName is always None:
         if self.outgoingQName is not None:
             self.channel.queue_declare(queue=self.outgoingQName,
                                        durable=True)
@@ -100,7 +125,7 @@ class Rabbit(object):
         **kwargs are filled from the corresponding fields in the message.
         Assign your own function to this method.
         """
-        print "I have nothing to do. I am just re-routing messages."
+        print "I have nothing to do."
         pass
 
     def on_request(self, ch, method, properties, body):
@@ -120,7 +145,6 @@ class Rabbit(object):
         self.channel.basic_publish(exchange=self.outgoingExName,
                                    routing_key=self.data_type,
                                    body=msg)
-
 
     def report_settings(self):
         return "[%s rabbit] Listening to: %s (receiving messages from %s exchange by %s tag);\nsending to: %s exchange." \
