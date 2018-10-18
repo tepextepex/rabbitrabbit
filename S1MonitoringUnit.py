@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from auth import auth_data, host, vhost_name
 from auth import db_auth_data, db_host, db_name, db_table
+from auth import storage
 import MonitoringUtils as mu
 
 credentials = auth_data["cordelia"]
@@ -15,20 +16,18 @@ r = Rabbit(credentials=credentials,
            name="monitoring_unit",
            data_type=data_type)
 
-test_dir = "/home/tepex/NIERSC/IEPI/monitoring/source/"
+# storage = "/home/tepex/NIERSC/IEPI/monitoring/source/"
 
-new_products = []
-new_products = mu.seek_new_products(test_dir, db_host, db_name, db_auth_data[0], db_auth_data[1], db_table)
+new_products = mu.seek_new_products(storage, "S1*.zip", db_host, db_name, db_auth_data[0], db_auth_data[1], db_table)
 
 for product in new_products:
     payload = {
         "time": str(datetime.now().time()),
-        "sourcedata": product,
-        "outdir": ""
+        "source_data": product,
+        "out_dir": storage
     }
     message = json.dumps(payload)
-    print message
+    print "Generated message: %s" % message
+    r.say(message)
 
 # notice that you don't need to run() the master rabbit, because it doesn't listen to any queues
-# but it can send messages to agents:
-# r.say(message)
