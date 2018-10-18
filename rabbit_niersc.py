@@ -74,7 +74,7 @@ class Rabbit(object):
             self.incomingQName = "_".join(["to", "agent", self.name])
         elif self.prof == "unit":
             self.incomingExName = "from_agent_routing"
-            self.incomingQName = "_".join(["from", "agent", self.name])
+            self.incomingQName = "_".join(["to", "unit", self.name])
         elif self.prof == "logger":
             self.incomingExName = "to_logger_routing"
             self.incomingQName = "to_logger"  # only one "to_logger" Q exists, no need in unique names
@@ -130,7 +130,7 @@ class Rabbit(object):
 
     def on_request(self, ch, method, properties, body):
 
-        print "Got message: key = %s, body = %s" % (method.routing_key, body)
+        print "Got message:\nkey = %s,\nbody = %s" % (method.routing_key, body)
         # let's acknowledge the incoming msg first:
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
         # Here we should do all the work (processing and so on)
@@ -140,6 +140,7 @@ class Rabbit(object):
         # Then send a message further
         self.say(body)
 
+    # TODO: a method to construct a JSON with all the needed attributes according to conventions
     def say(self, msg):
 
         self.channel.basic_publish(exchange=self.outgoingExName,
