@@ -136,7 +136,9 @@ class Rabbit(object):
         # Here we should do all the work (processing and so on)
         msg_json = json.loads(body)
         # TODO: pass inside the following function every existing JSON item as kwarg:
-        self.duty(a=msg_json["a"], b=msg_json["b"])
+        self.duty(time=msg_json["time"],
+                  source_data=msg_json["source_data"],
+                  out_dir=msg_json["out_dir"])
         # Then send a message further
         self.say(body)
 
