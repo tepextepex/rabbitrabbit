@@ -1,11 +1,12 @@
 import os
 import os.path
 import psycopg2 as psy
+import glob
 
 
-def seek_new_products(source_dir, host, dbname, login, pwd, db_table):
+def seek_new_products(source_dir, pattern, host, dbname, login, pwd, db_table):
     """
-    Loops through specified directory and searches for new products ("new" means "is not in the database yet").
+    Loops through specified directory and searches for new products by pattern ("new" means "is not in the database yet").
 
     :returns: list of filenames or empty list if nothing found
     """
@@ -15,9 +16,12 @@ def seek_new_products(source_dir, host, dbname, login, pwd, db_table):
     cur = conn.cursor()
 
     if os.path.exists(source_dir):
-        for fname in os.listdir(source_dir):
+        names = [os.path.basename(x) for x in glob.glob(os.path.join(source_dir, pattern))]  # returns a list containing file names
+        for fname in names:
             if not is_in_db(cur, fname, db_table):
                 new.append(fname)
+    else:
+        print "Can't find directory: %s" % source_dir
     cur.close()
     conn.close()
 
