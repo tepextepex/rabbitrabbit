@@ -140,7 +140,7 @@ class Rabbit(object):
                   source_data=msg_json["source_data"],
                   out_dir=msg_json["out_dir"])
         # Then send a message further
-        self.say(body)
+        # self.say(body)  # No, this shouldn't be here
 
     # TODO: a method to construct a JSON with all the needed attributes according to conventions
     def say(self, msg):
