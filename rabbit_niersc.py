@@ -168,7 +168,7 @@ class Rabbit(object):
         self.channel.stop_consuming()
         self.connection.close()
     '''
-
+    # TODO: def log function
 
 ################################################################################
 #                              Let's test it!                                  #
