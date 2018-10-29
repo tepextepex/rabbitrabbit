@@ -1,6 +1,6 @@
 import pika
 import json
-
+import MonitoringUtils #  provides interaction with postgres database
 
 class Rabbit(object):
 
@@ -169,6 +169,13 @@ class Rabbit(object):
         self.connection.close()
     '''
     # TODO: def log function
+    def log(self):
+        #  what should we log?
+        #  - Rabbit name;
+        #  - product id? what if we have two of them?
+        #  - or it's better to log just a whole message?
+        pass
+
 
 ################################################################################
 #                              Let's test it!                                  #
