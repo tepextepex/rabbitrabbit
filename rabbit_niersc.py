@@ -135,19 +135,21 @@ class Rabbit(object):
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
         # Here we should do all the work (processing and so on)
         msg_json = json.loads(body)
-        # TODO: pass inside the following function every existing JSON item as kwarg:
-        self.duty(time=msg_json["time"],
-                  source_data=msg_json["source_data"],
-                  out_dir=msg_json["out_dir"])
-        # Then send a message further
-        # self.say(body)  # No, this shouldn't be here
+        # let's pass JSON attributes from received message inside the "duty" method as its kwargs:
+        time = msg_json["time"] if "time" in msg_json else None
+        source_data = msg_json["source_data"] if "source_data" in msg_json else None
+        out_dir = msg_json["out_dir"] if "out_dir" in msg_json else None
+        options = msg_json["options"] if "options" in msg_json else None
+        self.duty(time=time,
+                  source_data=source_data,
+                  out_dir=out_dir,
+                  options=options)
 
-    # TODO: a method to construct a JSON with all the needed attributes according to conventions
-    def say(self, msg):
-
+    def say(self, payload):
+        message = json.dumps(payload)
         self.channel.basic_publish(exchange=self.outgoingExName,
                                    routing_key=self.data_type,
-                                   body=msg)
+                                   body=message)
 
     def report_settings(self):
         return "[%s rabbit] Listening to: %s (receiving messages from %s exchange by %s tag);\nsending to: %s exchange." \
