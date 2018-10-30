@@ -1,6 +1,6 @@
 import pika
 import json
-import MonitoringUtils #  provides interaction with postgres database
+
 
 class Rabbit(object):
 
@@ -21,7 +21,6 @@ class Rabbit(object):
                                                     self.vhost_name,
                                                     self.credentials)
         self.connection = pika.BlockingConnection(self.con_params)
-        # self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
         self.channel = self.connection.channel()
 
         self._setup_incoming()
@@ -140,6 +139,7 @@ class Rabbit(object):
         source_data = msg_json["source_data"] if "source_data" in msg_json else None
         out_dir = msg_json["out_dir"] if "out_dir" in msg_json else None
         options = msg_json["options"] if "options" in msg_json else None
+        # and finally call the "duty" method which performs all the needed tasks:
         self.duty(time=time,
                   source_data=source_data,
                   out_dir=out_dir,
@@ -170,13 +170,6 @@ class Rabbit(object):
         self.channel.stop_consuming()
         self.connection.close()
     '''
-    # TODO: def log function
-    def log(self):
-        #  what should we log?
-        #  - Rabbit name;
-        #  - product id? what if we have two of them?
-        #  - or it's better to log just a whole message?
-        pass
 
 
 ################################################################################
