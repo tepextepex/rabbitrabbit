@@ -1,6 +1,7 @@
 import os
 import os.path
 from datetime import datetime
+import time
 import psycopg2 as psy
 import glob
 import json
@@ -22,9 +23,13 @@ def seek_new_products(source_dir, pattern, host, dbname, login, pwd, db_table):
         for fname in names:
             if not is_in_db(cur, fname, db_table):
                 new.append(fname)
-                insert_in_db(cur, fname, db_table)  # TODO: should we insert a new product in a DB right now..?
+                r = insert_in_db(cur, fname, db_table)  # TODO: should we insert a new product in a DB right now..?
+                print "INSERT returned %s" % r
     else:
         print "Can't find directory: %s" % source_dir
+
+    conn.commit()
+
     cur.close()
     conn.close()
 
@@ -47,8 +52,9 @@ def insert_in_db(cursor, fname, db_table):
 
     :returns: 1 if fname was successfully inserted or -1 if was not
     """
-    timestamp = datetime.now().timestamp()
-    cursor.execute("INSERT INTO %s (product_id, timestamp) VALUES ('%s', '%s')" % (db_table, fname, timestamp))
+    # timestamp = datetime.now().timestamp()  # works only for Python 3.x
+    timestamp = time.time()
+    cursor.execute("INSERT INTO %s (product_id, timestamp) VALUES ('%s', CURRENT_TIMESTAMP)" % (db_table, fname))
     return cursor.rowcount
 
 
@@ -63,9 +69,12 @@ def log(who, message, host, dbname, login, pwd, db_table):
     cur = conn.cursor()
 
     json_message = json.dumps(message)
-    timestamp = datetime.now().timestamp()
+    # timestamp = datetime.now().timestamp()  # works only for Python 3.x
+    timestamp = time.time()
 
-    cur.execute("INSERT INTO %s (who, message, timestamp) VALUES ('%s', '%s', '%s')" % (db_table, who, json_message, timestamp))
+    cur.execute("INSERT INTO %s (who, message, timestamp) VALUES ('%s', '%s', CURRENT_TIMESTAMP)" % (db_table, who, json_message))
+
+    conn.commit()
 
     cur.close()
     conn.close()
