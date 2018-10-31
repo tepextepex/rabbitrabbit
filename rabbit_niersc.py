@@ -117,7 +117,7 @@ class Rabbit(object):
         if self.outgoingQName is not None:
             self.channel.queue_declare(queue=self.outgoingQName,
                                        durable=True)
-
+    # TODO pass inside the whole JSON without splitting it to kwargs?
     def duty(self, **kwargs):
         """
         This method is called each time the Rabbit instance receives a message.
