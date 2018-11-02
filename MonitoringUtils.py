@@ -1,10 +1,12 @@
 import os
 import os.path
-from datetime import datetime
 import time
 import psycopg2 as psy
+from psycopg2.extensions import AsIs
 import glob
 import json
+import geojson
+import shapely.wkt
 
 
 def seek_new_products(source_dir, pattern, host, dbname, login, pwd, db_table):
@@ -23,8 +25,10 @@ def seek_new_products(source_dir, pattern, host, dbname, login, pwd, db_table):
         for fname in names:
             if not is_in_db(cur, fname, db_table):
                 new.append(fname)
-                r = insert_in_db(cur, fname, db_table)  # TODO: should we insert a new product in a DB right now..?
-                print "INSERT returned %s" % r
+                # r = insert_in_db(cur, fname, db_table)
+                # r = db_insert_geojson(conn, db_table, fname, product_type, json_extent)
+                # print "INSERT returned %s" % r
+                pass
     else:
         print "Can't find directory: %s" % source_dir
 
@@ -42,7 +46,7 @@ def is_in_db(cursor, fname, db_table):
 
     :returns: True if a filename was found in the DB, and False if not
     """
-    cursor.execute("SELECT * FROM %s WHERE product_id = '%s'" % (db_table, fname))
+    cursor.execute("SELECT * FROM %s WHERE name = '%s'" % (db_table, fname))
     return True if cursor.fetchone() is not None else False
 
 
@@ -70,7 +74,7 @@ def log(who, message, host, dbname, login, pwd, db_table):
 
     json_message = json.dumps(message)
     # timestamp = datetime.now().timestamp()  # works only for Python 3.x
-    timestamp = time.time()
+    # timestamp = time.time()
 
     cur.execute("INSERT INTO %s (who, message, timestamp) VALUES ('%s', '%s', CURRENT_TIMESTAMP)" % (db_table, who, json_message))
 
@@ -80,3 +84,33 @@ def log(who, message, host, dbname, login, pwd, db_table):
     conn.close()
 
     return cur.rowcount
+
+
+def save_extent_as_geojson(extent, geojson_path):
+    try:
+        g1 = shapely.wkt.loads(extent)
+        g2 = geojson.Feature(geometry=g1, properties={})
+        outfile = open(geojson_path, 'w')
+        geojson.dump(g2, outfile)
+        outfile.close()
+        return True
+    except:
+        return False
+
+
+def db_insert_geojson(host, dbname, login, pwd, tbl_name, name, product_type, json_file):
+    ''' Insert a geojson to a database '''
+
+    conn_string = "host=%s dbname=%s user=%s password=%s" % (host, dbname, login, pwd)
+    conn = psy.connect(conn_string)
+    cur = conn.cursor()
+
+    qry = "INSERT INTO monitoring.public.%(table)s (name, type, geo_extent) " \
+          "VALUES (%(name)s, %(type)s, ST_SetSRID(ST_GeomFromGeoJSON(%(gj)s), 4326));"
+    # Get geo data from geojson file
+    gj = json_file['geometry']
+    print name
+    print gj
+    cur.execute(qry, ({"table": AsIs(tbl_name), "name": name,
+                       "type": product_type, "gj": json.dumps(gj)}),)
+    conn.commit()
