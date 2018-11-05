@@ -13,7 +13,7 @@ r = Rabbit(credentials=credentials,
            host=host,
            vhost_name=vhost_name,
            profession="master",
-           name="monitoring_unit",
+           name="S1ZipMonUnit",
            data_type=data_type)
 
 
