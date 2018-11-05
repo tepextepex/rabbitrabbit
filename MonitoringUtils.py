@@ -2,7 +2,7 @@ import os
 import os.path
 import time
 import psycopg2 as psy
-from psycopg2.extensions import AsIs
+#from psycopg2.extensions import AsIs
 import glob
 import json
 import geojson
