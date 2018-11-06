@@ -21,14 +21,14 @@ r = Rabbit(credentials=credentials,
 new_products = seek_new_products(storage, "S1*.tif", db_host, db_name, db_auth_data[0], db_auth_data[1], db_table)
 
 for product in new_products:
-    # create TIF footprint in geojson format:
-    footprint_file_name = get_footprint(os.path.join(storage, product))
+    # creates geojson with Tif footprint:
+    footprint_file_name = get_footprint(os.path.join(storage, product), storage)
     # inserts metadata in DB:
     with open(footprint_file_name) as f:
         data = json.load(f)
         db_insert_geojson(db_host, db_name, db_auth_data[0], db_auth_data[1], db_table, product, "S1_tif", data)
 
-    # construct message and send it to the agents:
+    # constructs message and sends it to the agents:
     payload = {
         "time": str(datetime.now().time()),
         "source_data": product,
