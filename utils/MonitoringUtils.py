@@ -114,3 +114,28 @@ def db_insert_geojson(host, dbname, login, pwd, tbl_name, name, product_type, js
     cur.execute(qry, ({"table": AsIs(tbl_name), "name": name,
                        "type": product_type, "gj": json.dumps(gj)}),)
     conn.commit()
+
+
+# TODO: add different raster formats support
+def get_footprint(raster, output_directory):
+    """
+    Creates GeoJSON file with a footprint for a given GTiff raster
+
+    :param raster: full path to a GeoTIFF raster
+    :param output_directory: path to save the resulting GeoJSON
+    :return: path for created GeoJSON
+    """
+    tmp_alpha = raster + "_tmp_alpha.tif"
+    geojson_file_name = os.path.join(output_directory, os.path.basename(raster) + "_extent.geojson")
+
+    # Step 1: gdalwarp -dstnodata 0 -dstalpha -of GTiff foo1 foo2 (creates an alpha band using NoData)
+    cmd = 'gdalwarp -dstnodata 0 -dstalpha -of GTiff %s %s' % (raster, tmp_alpha)
+    os.system(cmd)
+
+    # Step 2: gdal_polygonize.py foo2 -b 2 -f "GeoJSON" foo3 (creates vector file from the alpha band)
+    cmd = 'gdal_polygonize.py %s -b 2 -f "GeoJSON" %s' % (tmp_alpha, geojson_file_name)
+    os.system(cmd)
+
+    os.remove(tmp_alpha)
+
+    return geojson_file_name

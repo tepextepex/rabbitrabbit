@@ -1,7 +1,4 @@
-from auth import storage
-from S1L1Tools import S1L1Tools
-from S1L1Tools import get_footprint
-from MonitoringUtils import *
+from utils.MonitoringUtils import get_footprint
 
 test_product_name = "S1B_EW_GRDM_1SDH_20180718T023515_20180718T023551_011859_015D43_C280.zip"
 work_dir = "/home/tepex/NIERSC/IEPI/monitoring/source/"

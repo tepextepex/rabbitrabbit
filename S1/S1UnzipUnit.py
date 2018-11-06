@@ -3,7 +3,7 @@ Receives: file name of Sentinel-1 zip-archived product.
 Produces: GeoTiff(s)
 """
 from rabbit_niersc import Rabbit
-from auth import auth_data, host, vhost_name
+from conf.auth import auth_data, host, vhost_name
 from S1L1Tools import S1L1Tools
 import os.path
 

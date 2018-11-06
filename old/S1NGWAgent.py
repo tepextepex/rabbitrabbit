@@ -1,5 +1,5 @@
 from rabbit_niersc import Rabbit
-from auth import auth_data, host, vhost_name
+from conf.auth import auth_data, host, vhost_name
 
 credentials = auth_data["cordelia"]
 
@@ -7,8 +7,8 @@ r = Rabbit(credentials=credentials,
            host=host,
            vhost_name=vhost_name,
            profession="agent",
-           name="S1_zip",
-           data_type="S1_zip")
+           name="S1_NGW",
+           data_type="S1_render")
 
 
 def forward_message(**msg):

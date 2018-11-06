@@ -1,11 +1,9 @@
 from rabbit_niersc import Rabbit
 from datetime import datetime
-from auth import auth_data, host, vhost_name
-from auth import db_auth_data, db_host, db_name, db_table
-from auth import storage
-from S1L1Tools import S1L1Tools
-from S1L1Tools import get_footprint
-from MonitoringUtils import *  # allows using its functions without prefixing them with the module name. But be aware of namespace collisions!
+from conf.auth import auth_data, host, vhost_name
+from conf.auth import db_auth_data, db_host, db_name, db_table
+from conf.auth import storage
+from utils.MonitoringUtils import *  # allows using its functions without prefixing them with the module name. But be aware of namespace collisions!
 
 credentials = auth_data["cordelia"]
 data_type = "S1_tif"  # this will be the routing key for our messages

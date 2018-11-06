@@ -1,6 +1,6 @@
 from rabbit_niersc import Rabbit
-from auth import auth_data, host, vhost_name
-from S1L1Tools import S1L1Tools
+from conf.auth import auth_data, host, vhost_name
+import shutil
 
 credentials = auth_data["ophelia"]
 
@@ -8,11 +8,11 @@ r = Rabbit(credentials=credentials,
            host=host,
            vhost_name=vhost_name,
            profession="unit",
-           name="S1RenderUnit",
-           data_type="S1_zip")
+           name="S1NGWUnit",
+           data_type="S1_render")
 
 
-def render(**msg):
+def publish(**msg):
     """
     Always use the same kwarg names as defined in the structure of JSON-message.
     On function call kwarg values will be assigned according to received message.
@@ -26,13 +26,12 @@ def render(**msg):
     try:
         source_data = msg["source_data"]
         out_dir = msg["out_dir"]
-        s = S1L1Tools(out_dir + source_data)
-        s.render(out_dir, ["HH"])
+        shutil.copy2(out_dir + source_data, out_dir + "NGW/" + source_data)
     except TypeError:
         pass
     return result
 
 
-r.duty = render
+r.duty = publish
 
 r.run()
